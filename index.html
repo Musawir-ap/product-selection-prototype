@@ -1,0 +1,868 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Dräger Product Selector Prototype</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/choices.js/public/assets/styles/choices.min.css" />
+    <style>
+        body {
+            font-family: 'Inter', sans-serif;
+        }
+        .screen {
+            display: none;
+        }
+        .screen.active {
+            display: block;
+        }
+        .form-section {
+            border: 1px solid #e5e7eb;
+            border-radius: 0.5rem;
+            padding: 1.5rem;
+            margin-bottom: 1.5rem;
+        }
+        .form-section-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 1rem;
+            border-bottom: 1px solid #e5e7eb;
+            padding-bottom: 0.75rem;
+        }
+        .form-section-header h3 {
+            font-size: 1.125rem;
+            font-weight: 600;
+            margin-bottom: 0;
+            border-bottom: 0;
+            padding-bottom: 0;
+        }
+        .result-card {
+            border: 1px solid #e5e7eb;
+            border-radius: 0.5rem;
+            padding: 1.5rem;
+            margin-bottom: 1.5rem;
+            transition: box-shadow 0.3s;
+        }
+        .result-card:hover {
+            box-shadow: 0 4px 6px -1px rgb(0 0 0 / 0.1), 0 2px 4px -2px rgb(0 0 0 / 0.1);
+        }
+        .result-card.recommended {
+            border-left: 4px solid #4b5563; /* gray-600 */
+        }
+        label {
+            font-weight: 500;
+        }
+        .part-number-table {
+            width: 100%;
+            margin-top: 1rem;
+            font-size: 0.875rem;
+        }
+        .part-number-table td {
+            padding: 0.5rem 0;
+            vertical-align: top;
+        }
+        .part-number-table tr:not(:last-child) td {
+            border-bottom: 1px solid #f3f4f6;
+        }
+        .part-number-table td:first-child {
+            font-weight: 500;
+            color: #4b5563;
+        }
+        .part-number-table td:last-child {
+            font-family: monospace;
+            text-align: right;
+        }
+        .dynamic-range-container {
+            transition: opacity 0.3s;
+        }
+        /* Choices.js Custom Styling */
+        .choices__inner {
+            background-color: #fff;
+            border-radius: 0.375rem;
+            border-color: #d1d5db;
+        }
+        .choices[data-type*="select-one"] .choices__inner {
+            padding-bottom: 0.5rem;
+        }
+        .choices__list--dropdown .choices__item--selectable.is-highlighted {
+            background-color: #f3f4f6;
+            color: #1f2937;
+        }
+    </style>
+</head>
+<body class="bg-gray-100 text-gray-800">
+
+    <div class="container mx-auto p-4 sm:p-6 lg:p-8 max-w-5xl">
+        <header class="text-center mb-8">
+            <h1 class="text-3xl font-bold text-gray-800">Dräger Product Selection Tool</h1>
+            <p class="text-gray-600 mt-2">Interactive Prototype - Guiding you to the perfect safety solution.</p>
+        </header>
+
+        <div id="screen-start" class="screen active">
+            <div class="text-center bg-white p-8 rounded-lg shadow-sm border border-gray-200">
+                <h2 class="text-2xl font-semibold mb-4">Select Application Type</h2>
+                <p class="text-gray-600 mb-6">Choose the type of detector you need to configure.</p>
+                <div class="flex flex-col sm:flex-row justify-center gap-4">
+                    <button onclick="showScreen('screen-fixed')" class="bg-gray-700 text-white font-bold py-3 px-6 rounded-lg hover:bg-gray-800 transition duration-300 w-full sm:w-auto">
+                        Fixed Gas Detector
+                    </button>
+                    <button onclick="showScreen('screen-portable')" class="bg-gray-600 text-white font-bold py-3 px-6 rounded-lg hover:bg-gray-700 transition duration-300 w-full sm:w-auto">
+                        Portable Gas Detector
+                    </button>
+                </div>
+            </div>
+        </div>
+
+        <div id="screen-fixed" class="screen">
+            <div class="bg-white p-6 rounded-lg shadow-sm border border-gray-200">
+                <div class="flex justify-between items-center mb-6">
+                    <h2 class="text-2xl font-semibold">Fixed Gas Detector Configuration</h2>
+                    <button onclick="showScreen('screen-start')" class="text-sm text-gray-600 hover:underline">&larr; Back to Start</button>
+                </div>
+                
+                <div class="form-section">
+                    <div class="form-section-header">
+                        <h3>Start with any of the following (Options will filter dynamically)</h3>
+                        <button onclick="clearFixedSelections()" class="text-sm font-medium text-blue-600 hover:text-blue-800">Clear All</button>
+                    </div>
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        <div class="grid grid-cols-2 gap-4">
+                                <div>
+                                    <label for="fixed-tech" class="block text-sm font-medium text-gray-700">Technology</label>
+                                    <select id="fixed-tech" class="mt-1 block w-full"></select>
+                                </div>
+                                <div>
+                                    <label for="fixed-type" class="block text-sm font-medium text-gray-700">Gas Type</label>
+                                    <select id="fixed-type" class="mt-1 block w-full"></select>
+                                </div>
+                        </div>
+                        <div class="grid grid-cols-2 gap-4">
+                            <div>
+                                <label for="fixed-gas" class="block text-sm font-medium text-gray-700">Specific Gas</label>
+                                <select id="fixed-gas" class="mt-1 block w-full"></select>
+                            </div>
+                             <div id="fixed-range-container" class="dynamic-range-container">
+                                </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="form-section">
+                    <div class="form-section-header"><h3>Complete Configuration</h3></div>
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-x-6 gap-y-4">
+                        <div>
+                            <label for="fixed-material" class="block text-sm font-medium text-gray-700">Material</label>
+                            <select id="fixed-material" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm sm:text-sm">
+                                <option>Stainless Steel (SS)</option>
+                                <option>Aluminium (Al)</option>
+                            </select>
+                        </div>
+                        <div>
+                            <label for="fixed-connection" class="block text-sm font-medium text-gray-700">Connection</label>
+                            <select id="fixed-connection" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm sm:text-sm">
+                                <option>3/4" NPT</option>
+                                <option>M25</option>
+                                <option>M20</option>
+                            </select>
+                        </div>
+                        <div class="flex items-center gap-8 pt-2">
+                            <div class="flex items-start">
+                                <div class="flex h-5 items-center">
+                                    <input id="fixed-hart" type="checkbox" class="h-4 w-4 rounded border-gray-300 text-gray-600 focus:ring-gray-500">
+                                </div>
+                                <div class="ml-3 text-sm">
+                                    <label for="fixed-hart" class="font-medium text-gray-700">HART</label>
+                                </div>
+                            </div>
+                            <div class="flex items-start">
+                                <div class="flex h-5 items-center">
+                                    <input id="fixed-display" type="checkbox" checked class="h-4 w-4 rounded border-gray-300 text-gray-600 focus:ring-gray-500">
+                                </div>
+                                <div class="ml-3 text-sm">
+                                    <label for="fixed-display" class="font-medium text-gray-700">Display</label>
+                                </div>
+                            </div>
+                            <div class="flex items-start">
+                                <div class="flex h-5 items-center">
+                                    <input id="fixed-relay" type="checkbox" class="h-4 w-4 rounded border-gray-300 text-gray-600 focus:ring-gray-500">
+                                </div>
+                                <div class="ml-3 text-sm">
+                                    <label for="fixed-relay" class="font-medium text-gray-700">Relay</label>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="text-center mt-6">
+                    <button onclick="showFixedResult()" class="bg-gray-700 text-white font-bold py-3 px-8 rounded-lg hover:bg-gray-800 transition duration-300">
+                        Select Accessories
+                    </button>
+                </div>
+            </div>
+        </div>
+
+        <div id="screen-portable" class="screen">
+             <div class="bg-white p-6 rounded-lg shadow-sm border border-gray-200">
+                <div class="flex justify-between items-center mb-6">
+                    <h2 class="text-2xl font-semibold">Portable Gas Detector Configuration</h2>
+                    <button onclick="showScreen('screen-start')" class="text-sm text-gray-600 hover:underline">&larr; Back to Start</button>
+                </div>
+
+                <div class="form-section">
+                    <div class="form-section-header">
+                        <h3>Gas Detection Needs</h3>
+                        <button onclick="clearPortableSelections()" class="text-sm font-medium text-blue-600 hover:text-blue-800">Clear All</button>
+                    </div>
+                    <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+                        <div>
+                            <label for="portable-gas-count" class="block text-sm font-medium text-gray-700">Number of Gases</label>
+                            <input type="number" id="portable-gas-count" min="1" max="10" value="1" onchange="generateGasSelectors()" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm sm:text-sm">
+                        </div>
+                    </div>
+                    <div id="portable-gas-selectors" class="mt-4 grid grid-cols-1 md:grid-cols-2 gap-4">
+                        </div>
+                </div>
+
+                <div class="form-section">
+                    <div class="form-section-header"><h3>Pump Requirements</h3></div>
+                    <div class="flex items-center gap-8">
+                        <div class="flex items-start">
+                            <div class="flex h-5 items-center"><input id="portable-pump-inbuilt" type="checkbox" class="h-4 w-4 rounded border-gray-300 text-gray-600 focus:ring-gray-500"></div>
+                            <div class="ml-3 text-sm"><label for="portable-pump-inbuilt" class="font-medium text-gray-700">Inbuilt Pump</label></div>
+                        </div>
+                        <div class="flex items-start">
+                            <div class="flex h-5 items-center"><input id="portable-pump-external" type="checkbox" class="h-4 w-4 rounded border-gray-300 text-gray-600 focus:ring-gray-500"></div>
+                            <div class="ml-3 text-sm"><label for="portable-pump-external" class="font-medium text-gray-700">External Pump Accessory</label></div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="form-section">
+                    <div class="form-section-header"><h3>Select Accessories for Package</h3></div>
+                    <div class="space-y-2">
+                        <div class="flex items-start">
+                            <div class="flex h-5 items-center"><input id="acc-charger-kit" type="checkbox" class="h-4 w-4 rounded border-gray-300 text-gray-600 focus:ring-gray-500"></div>
+                            <div class="ml-3 text-sm"><label for="acc-charger-kit" class="font-medium text-gray-700">Battery pack & charging set (Complete Kit)</label></div>
+                        </div>
+                        <div class="flex items-start">
+                            <div class="flex h-5 items-center"><input id="acc-battery" type="checkbox" class="h-4 w-4 rounded border-gray-300 text-gray-600 focus:ring-gray-500"></div>
+                            <div class="ml-3 text-sm"><label for="acc-battery" class="font-medium text-gray-700">Separate NIMH Battery only</label></div>
+                        </div>
+                         <div class="flex items-start">
+                            <div class="flex h-5 items-center"><input id="acc-pump-kit" type="checkbox" class="h-4 w-4 rounded border-gray-300 text-gray-600 focus:ring-gray-500"></div>
+                            <div class="ml-3 text-sm"><label for="acc-pump-kit" class="font-medium text-gray-700">External Pump Accessory (includes pump) (Part: 8327100)</label></div>
+                        </div>
+                    </div>
+                </div>
+                
+                 <div class="text-center mt-6">
+                    <button onclick="showPortableResult()" class="bg-gray-700 text-white font-bold py-3 px-8 rounded-lg hover:bg-gray-800 transition duration-300">
+                        Get Result / Product
+                    </button>
+                </div>
+             </div>
+        </div>
+
+        <div id="screen-fixed-accessories" class="screen">
+            <div class="bg-white p-6 rounded-lg shadow-sm border border-gray-200">
+                 <div class="flex justify-between items-center mb-6">
+                    <h2 class="text-2xl font-semibold">Select Add-on Accessories</h2>
+                    <button onclick="showScreen('screen-fixed')" class="text-sm text-gray-600 hover:underline">&larr; Back to Configuration</button>
+                </div>
+                <div id="fixed-accessories-container">
+                    </div>
+                 <div class="text-center mt-6">
+                    <button onclick="showFinalFixedResult()" class="bg-gray-700 text-white font-bold py-3 px-8 rounded-lg hover:bg-gray-800 transition duration-300">
+                        View Final Result
+                    </button>
+                </div>
+            </div>
+        </div>
+
+        <div id="screen-results" class="screen">
+            <div class="bg-white p-6 rounded-lg shadow-sm border border-gray-200">
+                <div class="flex justify-between items-center mb-6">
+                    <h2 class="text-2xl font-semibold">Matching Solutions</h2>
+                    <button onclick="goBackToConfiguration()" class="text-sm text-gray-600 hover:underline">&larr; Back</button>
+                </div>
+                <div id="results-container">
+                    </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/choices.js/public/assets/scripts/choices.min.js"></script>
+    <script>
+        // --- DATA SIMULATION ---
+        const fixedGasData = {
+            'Acid Gases': { model: 'Polytron 8100', type: 'Toxic', tech: 'Electrochemical (EC)', sensors: [{ range: '0-30 ppm', partNumber: 'INCLUDED' }] },
+            'Ammonia': { model: 'Polytron 8100', type: 'Toxic', tech: 'Electrochemical (EC)', sensors: [
+                { range: 'NH3 LC (0-300 ppm)', partNumber: 'INCLUDED' },
+                { range: 'NH3 HC (0-1,000 ppm)', partNumber: 'INCLUDED' },
+                { range: 'NH3 TL (0-300 ppm)', partNumber: 'INCLUDED' }
+            ]},
+            'Carbon Monoxide': { model: 'Polytron 8100', type: 'Toxic', tech: 'Electrochemical (EC)', sensors: [
+                { range: 'CO (0-1,000 ppm)', partNumber: 'INCLUDED' },
+                { range: 'CO LS (0-5,000 ppm)', partNumber: 'INCLUDED' },
+                { range: 'CO LH (0-300 ppm)', partNumber: 'INCLUDED' }
+            ]},
+            'Chlorine': { model: 'Polytron 8100', type: 'Toxic', tech: 'Electrochemical (EC)', sensors: [{ range: '0-100 ppm', partNumber: 'INCLUDED' }] },
+            'Hydrogen': { model: 'Polytron 8100', type: 'Toxic', tech: 'Electrochemical (EC)', sensors: [{ range: '0-3,000 ppm', partNumber: 'INCLUDED' }] },
+            'Hydrogen Chloride': { model: 'Polytron 8100', type: 'Toxic', tech: 'Electrochemical (EC)', sensors: [{ range: '0-100 ppm', partNumber: 'INCLUDED' }] },
+            'Hydrogen Cyanide': { model: 'Polytron 8100', type: 'Toxic', tech: 'Electrochemical (EC)', sensors: [
+                { range: 'HCN (0-50 ppm)', partNumber: 'INCLUDED' },
+                { range: 'HCN LC (0-50 ppm)', partNumber: 'INCLUDED' }
+            ]},
+            'Hydrogen Peroxide': { model: 'Polytron 8100', type: 'Toxic', tech: 'Electrochemical (EC)', sensors: [
+                { range: 'H2O2 LC (0-300 ppm)', partNumber: 'INCLUDED' },
+                { range: 'H2O2 HC (0-7,000 ppm)', partNumber: 'INCLUDED' }
+            ]},
+            'Hydrogen Sulfide': { model: 'Polytron 8100', type: 'Toxic', tech: 'Electrochemical (EC)', sensors: [
+                { range: 'H2S LC (0-100 ppm)', partNumber: 'INCLUDED' },
+                { range: 'H2S HC (0-1,000 ppm)', partNumber: 'INCLUDED' },
+                { range: 'H2S (0-100 ppm)', partNumber: 'INCLUDED' }
+            ]},
+            'Hydrazine': { model: 'Polytron 8100', type: 'Toxic', tech: 'Electrochemical (EC)', sensors: [{ range: '0-3 ppm', partNumber: 'INCLUDED' }] },
+            'Nitrogen Dioxide': { model: 'Polytron 8100', type: 'Toxic', tech: 'Electrochemical (EC)', sensors: [
+                { range: 'NO2 (0-100 ppm)', partNumber: 'INCLUDED' },
+                { range: 'NO2 LC (0-20 ppm)', partNumber: 'INCLUDED' }
+            ]},
+            'Nitrogen Monoxide': { model: 'Polytron 8100', type: 'Toxic', tech: 'Electrochemical (EC)', sensors: [{ range: 'NO LC (0-200 ppm)', partNumber: 'INCLUDED' }] },
+            'Organic Vapors': { model: 'Polytron 8100', type: 'Toxic', tech: 'Electrochemical (EC)', sensors: [
+                { range: 'OV1 (various)', partNumber: 'INCLUDED' },
+                { range: 'OV2 (various)', partNumber: 'INCLUDED' }
+            ]},
+            'Oxygen': { model: 'Polytron 8100', type: 'Toxic', tech: 'Electrochemical (EC)', sensors: [{ range: 'O2 LS (0-25 Vol%)', partNumber: 'INCLUDED' }] },
+            'Ozone': { model: 'Polytron 8100', type: 'Toxic', tech: 'Electrochemical (EC)', sensors: [{ range: '0-10 ppm', partNumber: 'INCLUDED' }] },
+            'Phosgene': { model: 'Polytron 8100', type: 'Toxic', tech: 'Electrochemical (EC)', sensors: [{ range: '0-2 ppm', partNumber: 'INCLUDED' }] },
+            'Phosphine/Arsine': { model: 'Polytron 8100', type: 'Toxic', tech: 'Electrochemical (EC)', sensors: [{ range: '0-20 ppm', partNumber: 'INCLUDED' }] },
+            'Sulfur Dioxide': { model: 'Polytron 8100', type: 'Toxic', tech: 'Electrochemical (EC)', sensors: [{ range: '0-100 ppm', partNumber: 'INCLUDED' }] },
+            'Methane': { model: 'Polytron 5100', type: 'Flammable', tech: 'Catalytic Bead', sensors: [{ range: 'CH4 (0-100 %LEL)', partNumber: '6812950' }] },
+            'Propane': { model: 'Polytron 5100', type: 'Flammable', tech: 'Catalytic Bead', sensors: [{ range: 'C3H8 (0-100 %LEL)', partNumber: '6812950' }] },
+            'Hydrogen (Flammable)': { model: 'Polytron 5100', type: 'Flammable', tech: 'Catalytic Bead', sensors: [{ range: 'H2 (0-100 %LEL)', partNumber: '6812950' }] },
+            'Carbon Dioxide': { model: 'Polytron 8700', type: 'Toxic', tech: 'Infrared (IR)', sensors: [{ range: 'CO2 (0-5 Vol%)', partNumber: '6812180' }] },
+            'Methane (IR)': { model: 'Polytron 5700', type: 'Flammable', tech: 'Infrared (IR)', sensors: [{ range: 'CH4 (0-100 %LEL)', partNumber: '6811960' }] },
+        };
+
+        const portableGases = {
+            'LEL (CatEx)': { type: 'CatEx', sensors: [{ range: '0-100 %LEL', partNumber: '6812950' }]},
+            'LEL (IR)':    { type: 'IR', sensors: [{ range: '0-100 %LEL', partNumber: '6811960' }]},
+            'VOC (PID)':   { type: 'PID', sensors: [{ name: 'VOC', range: '0-2,000 ppm', partNumber: '6812545' }]},
+            'O2': { type: 'EC', sensors: [{ name: 'O2', range: '0–25 Vol.-%', partNumber: '6810881' }]},
+            'CO': { type: 'EC', sensors: [{ name: 'CO', range: '0-2,000 ppm', partNumber: '6813210' }]},
+            'CO (H2-Comp)': { type: 'EC', sensors: [{ name: 'CO (H2-Comp)', range: '0-2,000 ppm', partNumber: '6812010'}]},
+            'H2S': { type: 'EC', sensors: [{ name: 'H2S', range: '0–100 ppm', partNumber: '6811525' }]},
+            'SO2': { type: 'EC', sensors: [{ name: 'SO2', range: '0-100 ppm', partNumber: '6810885' }]},
+            'NO2': { type: 'EC', sensors: [{ name: 'NO2', range: '0-50 ppm', partNumber: '6810884' }]},
+            'NO': { type: 'EC', sensors: [{ name: 'NO', range: '0-200 ppm', partNumber: '6810883' }]},
+            'Cl2': { type: 'EC', sensors: [{ name: 'Cl2', range: '0-20 ppm', partNumber: '6810890' }]},
+            'HCN': { type: 'EC', sensors: [{ name: 'HCN', range: '0-50 ppm', partNumber: '6810889' }]},
+            'NH3': { type: 'EC', sensors: [{ name: 'NH3', range: '0-300 ppm', partNumber: '6810888' }]},
+            'PH3': { type: 'EC', sensors: [{ name: 'PH3', range: '0-20 ppm', partNumber: '6810895' }]},
+            'Ozone (O3)': { type: 'EC', sensors: [{ name: 'O3', range: '0-5 ppm', partNumber: '6810892' }]},
+            'Phosgene (COCl2)': { type: 'EC', sensors: [{ name: 'COCl2', range: '0-2 ppm', partNumber: '6810891' }]},
+            'OV': { type: 'EC', sensors: [{ name: 'OV', range: '0-200 ppm', partNumber: '6811530' }]},
+            'CO2 (IR)': { type: 'IR', sensors: [{ name: 'CO2', range: '0-5 Vol.-%', partNumber: '6812180'}]},
+        };
+
+        const dualSensorMap = {
+            'H2S_CO': { name: 'H2S/CO Dual Sensor', type: 'Dual', range: 'CO/H2S', partNumber: '6813280', replaces: ['H2S', 'CO'] },
+            'O2_CO':  { name: 'O2/CO Dual Sensor', type: 'Dual', range: 'O2/CO', partNumber: '6813275', replaces: ['O2', 'CO'] },
+            'O2_H2S': { name: 'O2/H2S Dual Sensor', type: 'Dual', range: 'O2/H2S', partNumber: '6814137', replaces: ['O2', 'H2S'] },
+        };
+
+        const portableAccessories = {
+            'acc-charger-kit': { name: 'Battery pack & charging set', partNumber: '8318785' },
+            'acc-battery': { name: 'Separate NIMH Battery only', partNumber: '8318704' },
+            'acc-pump-kit': { name: 'External Pump Accessory', partNumber: '8327100' }
+        };
+
+        const fixedAccessories = {
+            mounting: [{ id: 'mount1', name: '2" Pipe mount', partNumber: '4544198' }],
+            calibration: [{ id: 'cal1', name: 'Magnetic Wand', partNumber: '4544101' }],
+            protective: [{ id: 'prot1', name: 'Splash Guard', partNumber: '6812510' }]
+        };
+
+        const portableProducts = {
+            'Pac 6500': {
+                isPac: true, pump: 'none', slots: 1, description: 'Robust single-gas device for personal monitoring.',
+                configs: { 'CO': '8326330', 'H2S': '8326331', 'O2': '8326333', 'SO2': '8326332' }
+            },
+            'Pac 8000': {
+                isPac: true, pump: 'none', slots: 1, description: 'Robust single-gas device for special gases.',
+                configs: { 'NO2': '8326852', 'CO2 (IR)': '8326855', 'Cl2': '8326851', 'HCN': '8326853', 'NH3': '8326854', 'PH3': '8326856' }
+            },
+            'Pac 8500': {
+                isPac: true, pump: 'none', slots: 1, dualSensorSupport: true, description: 'Single-gas or dual-sensor device for personal monitoring.',
+                configs: { 'H2S_CO': '8326857', 'O2_CO': '8326858' }
+            },
+            
+            'X-am 2800': { 
+                partNumber: '8328500', pump: 'external', dualSensorSupport: false,
+                description: 'Versatile 1 to 4-gas detector with external pump option.',
+                slots: [
+                    { position: 1, types: ['CatEx', 'IR'] }, { position: 2, types: ['EC', 'Dual'] },
+                    { position: 3, types: ['EC', 'Dual'] }, { position: 4, types: ['EC'] }
+                ]
+            },
+            'X-am 5000': { 
+                partNumber: '8320000', pump: 'external', dualSensorSupport: true,
+                description: '1 to 5 gas detection device, optimized for personal monitoring.',
+                slots: [
+                    { position: 1, types: ['CatEx', 'IR'] }, { position: 2, types: ['EC', 'Dual'] },
+                    { position: 3, types: ['EC', 'Dual'] }, { position: 4, types: ['EC'] }, { position: 5, types: ['EC'] }
+                ]
+            },
+            'X-am 3500': {
+                partNumber: '8322750', pump: 'inbuilt', dualSensorSupport: false,
+                description: '1 to 4 gas detector with internal pump, ideal for clearance measurements.',
+                 slots: [
+                    { position: 1, types: ['CatEx'] }, { position: 2, types: ['EC'] },
+                    { position: 3, types: ['EC', 'Dual'] }, { position: 4, types: ['EC'] }
+                ]
+            },
+            'X-am 8000': {
+                partNumber: '8325800', pump: 'inbuilt', dualSensorSupport: true,
+                description: '1 to 7 gas detector with internal pump and PID/IR options.',
+                slots: [
+                    { position: 1, types: ['CatEx', 'IR', 'PID'] }, { position: 2, types: ['IR', 'PID'] },
+                    { position: 3, types: ['EC', 'Dual'] }, { position: 4, types: ['EC', 'Dual'] },
+                    { position: 5, types: ['EC'] }, { position: 6, types: ['EC'] }, { position: 7, types: ['EC'] }
+                ]
+            }
+        };
+
+        // --- STATE MANAGEMENT & NAVIGATION ---
+        let currentScreen = 'screen-start';
+        let configurationSourceScreen = '';
+        let fixedConfiguration = {};
+        let choicesInstances = { fixed: {}, portable: [] };
+
+        function showScreen(screenId) {
+            currentScreen = screenId;
+            document.querySelectorAll('.screen').forEach(screen => screen.classList.remove('active'));
+            document.getElementById(screenId).classList.add('active');
+            window.scrollTo(0, 0);
+        }
+        
+        function goBackToConfiguration() {
+            showScreen(configurationSourceScreen || 'screen-start');
+        }
+
+        // --- FIXED DETECTOR LOGIC ---
+        function initFixedChoices() {
+            const techEl = document.getElementById('fixed-tech');
+            const typeEl = document.getElementById('fixed-type');
+            const gasEl = document.getElementById('fixed-gas');
+            const commonConfig = { searchEnabled: true, itemSelectText: 'Press to select' };
+            
+            Object.values(choicesInstances.fixed).forEach(inst => inst?.destroy());
+            
+            choicesInstances.fixed = {
+                tech: new Choices(techEl, commonConfig),
+                type: new Choices(typeEl, commonConfig),
+                gas: new Choices(gasEl, commonConfig)
+            };
+            
+            Object.entries(choicesInstances.fixed).forEach(([key, instance]) => {
+                instance.passedElement.element.addEventListener('change', () => updateFixedSelectors(key));
+            });
+            populateFixedSelectors();
+        }
+
+        function clearFixedSelections() {
+            populateFixedSelectors({ gas: '', type: '', tech: '' });
+            handleMultiTechIndicator();
+            updateFixedRangeSelector();
+        }
+        
+        function populateFixedSelectors(preserveSelections = {}) {
+            const currentGas = preserveSelections.hasOwnProperty('gas') ? preserveSelections.gas : choicesInstances.fixed.gas?.getValue(true) || '';
+            const currentType = preserveSelections.hasOwnProperty('type') ? preserveSelections.type : choicesInstances.fixed.type?.getValue(true) || '';
+            const currentTech = preserveSelections.hasOwnProperty('tech') ? preserveSelections.tech : choicesInstances.fixed.tech?.getValue(true) || '';
+
+            let availableGases = Object.keys(fixedGasData);
+            let availableTypes = [...new Set(Object.values(fixedGasData).map(g => g.type))];
+            let availableTechs = [...new Set(Object.values(fixedGasData).map(g => g.tech))];
+
+            if (currentGas) {
+                availableTypes = [fixedGasData[currentGas].type];
+                availableTechs = [fixedGasData[currentGas].tech];
+            } else {
+                if (currentType) {
+                    availableGases = availableGases.filter(gas => fixedGasData[gas].type === currentType);
+                    availableTechs = [...new Set(availableGases.map(gas => fixedGasData[gas].tech))];
+                }
+                if (currentTech) {
+                    availableGases = availableGases.filter(gas => fixedGasData[gas].tech === currentTech);
+                    if(!currentType) availableTypes = [...new Set(availableGases.map(gas => fixedGasData[gas].type))];
+                }
+            }
+            
+            const toChoices = arr => arr.sort().map(item => ({ value: item, label: item }));
+
+            ['gas', 'type', 'tech'].forEach(key => choicesInstances.fixed[key].clearStore());
+
+            choicesInstances.fixed.gas.setChoices([{ value: '', label: 'Any' }, ...toChoices(availableGases)], 'value', 'label', true);
+            choicesInstances.fixed.type.setChoices([{ value: '', label: 'Any' }, ...toChoices(availableTypes)], 'value', 'label', true);
+            choicesInstances.fixed.tech.setChoices([{ value: '', label: 'Any' }, ...toChoices(availableTechs)], 'value', 'label', true);
+
+            choicesInstances.fixed.gas.setChoiceByValue(currentGas);
+            choicesInstances.fixed.type.setChoiceByValue(currentType);
+            choicesInstances.fixed.tech.setChoiceByValue(currentTech);
+        }
+
+        function updateFixedSelectors(changedElement) {
+            let selections = {
+                gas: choicesInstances.fixed.gas.getValue(true),
+                type: choicesInstances.fixed.type.getValue(true),
+                tech: choicesInstances.fixed.tech.getValue(true)
+            };
+
+            if (changedElement === 'gas' && selections.gas) {
+                const gasData = fixedGasData[selections.gas];
+                selections.type = gasData.type;
+                selections.tech = gasData.tech;
+            }
+            
+            populateFixedSelectors(selections);
+            handleMultiTechIndicator();
+            updateFixedRangeSelector();
+        }
+
+        function handleMultiTechIndicator() {
+            const indicator = document.getElementById('fixed-tech-indicator');
+            indicator.classList.add('hidden');
+        }
+
+        function updateFixedRangeSelector() {
+            const selectedGas = choicesInstances.fixed.gas.getValue(true);
+            const container = document.getElementById('fixed-range-container');
+            container.innerHTML = '';
+            if (choicesInstances.fixed.range) {
+                choicesInstances.fixed.range.destroy();
+                delete choicesInstances.fixed.range;
+            }
+            if (selectedGas && fixedGasData[selectedGas]?.sensors.length > 1) {
+                const options = fixedGasData[selectedGas].sensors.map((variant, index) => ({ value: index, label: variant.range }));
+                container.innerHTML = `<label for="fixed-range" class="block text-sm font-medium text-gray-700">Measuring Range</label><select id="fixed-range" class="mt-1 block w-full"></select>`;
+                const rangeEl = document.getElementById('fixed-range');
+                choicesInstances.fixed.range = new Choices(rangeEl, { searchEnabled: false, itemSelectText: 'Press to select' });
+                choicesInstances.fixed.range.setChoices(options, 'value', 'label', true);
+            }
+        }
+
+        // --- PORTABLE DETECTOR LOGIC ---
+        function clearPortableSelections() {
+            choicesInstances.portable.forEach((instance, index) => {
+                instance.setChoiceByValue('');
+                const rangeContainer = document.getElementById(`portable-range-container-${index}`);
+                if (rangeContainer) rangeContainer.innerHTML = '';
+                if (instance.rangeInstance) {
+                    instance.rangeInstance.destroy();
+                    delete instance.rangeInstance;
+                }
+            });
+            updatePortableGasOptions();
+        }
+
+        function generateGasSelectors() {
+            choicesInstances.portable?.forEach(instance => {
+                if(instance.rangeInstance) instance.rangeInstance.destroy();
+                instance.destroy();
+            });
+            choicesInstances.portable = [];
+
+            const count = document.getElementById('portable-gas-count').value;
+            const container = document.getElementById('portable-gas-selectors');
+            container.innerHTML = Array.from({ length: count }, (_, i) => `
+                <div class="grid grid-cols-2 gap-4">
+                    <div>
+                        <label for="portable-gas-${i}" class="block text-sm font-medium text-gray-700">Gas ${i + 1}</label>
+                        <select id="portable-gas-${i}" class="portable-gas-selector mt-1 block w-full"></select>
+                    </div>
+                    <div id="portable-range-container-${i}" class="dynamic-range-container"></div>
+                </div>`).join('');
+            
+            document.querySelectorAll('.portable-gas-selector').forEach((selector, index) => {
+                const instance = new Choices(selector, { searchEnabled: true, itemSelectText: 'Press to select' });
+                choicesInstances.portable[index] = instance;
+                selector.addEventListener('change', () => {
+                    updatePortableGasOptions();
+                    updatePortableRangeSelector(index);
+                });
+            });
+
+            updatePortableGasOptions();
+            for (let i = 0; i < count; i++) updatePortableRangeSelector(i);
+        }
+
+        function updatePortableRangeSelector(index) {
+            const gasSelector = document.getElementById(`portable-gas-${index}`);
+            const selectedGas = gasSelector.value;
+            const container = document.getElementById(`portable-range-container-${index}`);
+            
+            if (choicesInstances.portable[index]?.rangeInstance) {
+                choicesInstances.portable[index].rangeInstance.destroy();
+            }
+            container.innerHTML = '';
+
+            if (selectedGas && portableGases[selectedGas]?.sensors.length > 1) {
+                const options = portableGases[selectedGas].sensors.map((variant, i) => ({ value: i, label: variant.range }));
+                container.innerHTML = `<label for="portable-range-${index}" class="block text-sm font-medium text-gray-700">Measuring Range</label><select id="portable-range-${index}" class="mt-1 block w-full"></select>`;
+                const rangeEl = document.getElementById(`portable-range-${index}`);
+                const rangeInstance = new Choices(rangeEl, { searchEnabled: false, itemSelectText: 'Press to select' });
+                rangeInstance.setChoices(options, 'value', 'label', true);
+                choicesInstances.portable[index].rangeInstance = rangeInstance;
+            }
+        }
+        
+        function updatePortableGasOptions() {
+            const selectedValues = choicesInstances.portable.map(instance => instance.getValue(true)).filter(Boolean);
+            const allChoices = Object.keys(portableGases).map(gas => ({ value: gas, label: gas }));
+            
+            choicesInstances.portable.forEach((instance) => {
+                const currentValue = instance.getValue(true);
+                const availableChoices = allChoices.filter(choice => !selectedValues.includes(choice.value) || choice.value === currentValue);
+                instance.clearStore();
+                instance.setChoices([{ value: '', label: 'Select Gas' }, ...availableChoices], 'value', 'label', true);
+                instance.setChoiceByValue(currentValue);
+            });
+        }
+
+        // --- RESULTS LOGIC ---
+        function showFixedResult() {
+            const gasName = choicesInstances.fixed.gas.getValue(true);
+            const accessoriesContainer = document.getElementById('fixed-accessories-container');
+            
+            if (!gasName) {
+                alert('Please select a specific gas to get a result.');
+                return;
+            }
+            
+            const gasData = fixedGasData[gasName];
+            const hasRelay = document.getElementById('fixed-relay').checked;
+            let basePartNumber = '8344860'; // Representative P/N
+            if (hasRelay) basePartNumber = '8344121';
+            
+            let selectedSensor = gasData.sensors[0];
+            if (gasData.sensors.length > 1 && choicesInstances.fixed.range) {
+                const rangeIndex = choicesInstances.fixed.range.getValue(true);
+                if(rangeIndex && gasData.sensors[rangeIndex]) {
+                    selectedSensor = gasData.sensors[rangeIndex];
+                }
+            }
+
+            fixedConfiguration = {
+                model: gasData.model,
+                transmitter: { name: `Transmitter (${hasRelay ? 'w/ Relay' : 'no Relay'})`, partNumber: basePartNumber },
+                sensor: { name: `${gasName} Sensor (${selectedSensor.range})`, partNumber: selectedSensor.partNumber }
+            };
+
+            let sensorHtml = '';
+            if (fixedConfiguration.sensor.partNumber !== 'INCLUDED') {
+                sensorHtml = `<tr><td>${fixedConfiguration.sensor.name}</td><td>${fixedConfiguration.sensor.partNumber}</td></tr>`;
+            }
+
+            const accessoriesHtml = `
+                <div class="result-card">
+                    <h3 class="text-xl font-bold">Base Product: Dräger ${fixedConfiguration.model}</h3>
+                    <table class="part-number-table">
+                        <tr><td>${fixedConfiguration.model} Transmitter</td><td>${fixedConfiguration.transmitter.partNumber}</td></tr>
+                        ${sensorHtml}
+                    </table>
+                </div>
+                <div class="form-section mt-6">
+                    <div class="form-section-header">
+                        <h3>Available Add-on Accessories</h3>
+                    </div>
+                    <div class="space-y-3">
+                        ${Object.entries(fixedAccessories).map(([category, items]) => `
+                            <div>
+                                <h5 class="font-semibold text-gray-600 capitalize">${category}</h5>
+                                ${items.map(acc => `<div class="flex items-start ml-4 mt-2">
+                                    <div class="flex h-5 items-center"><input id="${acc.id}" type="checkbox" class="h-4 w-4 rounded border-gray-300 text-gray-600 focus:ring-gray-500 fixed-accessory-checkbox"></div>
+                                    <div class="ml-3 text-sm"><label for="${acc.id}" class="font-medium text-gray-700">${acc.name} (Part: ${acc.partNumber})</label></div>
+                                </div>`).join('')}
+                            </div>
+                        `).join('')}
+                    </div>
+                </div>
+            `;
+            
+            accessoriesContainer.innerHTML = accessoriesHtml;
+            showScreen('screen-fixed-accessories');
+        }
+
+        function showFinalFixedResult() {
+            configurationSourceScreen = 'screen-fixed-accessories';
+            const resultsContainer = document.getElementById('results-container');
+            const selectedAccessories = [];
+            document.querySelectorAll('.fixed-accessory-checkbox:checked').forEach(checkbox => {
+                const allAccessories = Object.values(fixedAccessories).flat();
+                const accessory = allAccessories.find(acc => acc.id === checkbox.id);
+                if (accessory) selectedAccessories.push(accessory);
+            });
+
+            let sensorHtml = '';
+            if (fixedConfiguration.sensor.partNumber !== 'INCLUDED') {
+                sensorHtml = `<tr><td>${fixedConfiguration.sensor.name}</td><td>${fixedConfiguration.sensor.partNumber}</td></tr>`;
+            }
+
+            const accessoriesHtml = selectedAccessories.length > 0
+                ? selectedAccessories.map(acc => `<tr><td>${acc.name}</td><td>${acc.partNumber}</td></tr>`).join('')
+                : `<tr><td colspan="2" class="text-gray-500 text-center py-2">No accessories selected</td></tr>`;
+
+            resultsContainer.innerHTML = `
+                <div class="result-card">
+                    <h3 class="text-xl font-bold">Final Configuration: Dräger ${fixedConfiguration.model}</h3>
+                    <table class="part-number-table">
+                        <tr><td class="font-bold bg-gray-50" colspan="2">Base Device</td></tr>
+                        <tr><td>${fixedConfiguration.model} Transmitter</td><td>${fixedConfiguration.transmitter.partNumber}</td></tr>
+                        ${sensorHtml}
+                        <tr><td class="font-bold bg-gray-50" colspan="2">Selected Accessories</td></tr>
+                        ${accessoriesHtml}
+                    </table>
+                </div>`;
+            showScreen('screen-results');
+        }
+
+        function canSensorsFit(sensorsToPlace, deviceSlots) {
+            const availableSlots = JSON.parse(JSON.stringify(deviceSlots));
+            const sortedSensors = [...sensorsToPlace].sort((a, b) => {
+                const priority = { 'CatEx': 3, 'IR': 3, 'PID': 3, 'Dual': 2, 'EC': 1 };
+                return (priority[b.type] || 0) - (priority[a.type] || 0);
+            });
+
+            for (const sensor of sortedSensors) {
+                let placed = false;
+                for (let i = 0; i < availableSlots.length; i++) {
+                    if (availableSlots[i] && availableSlots[i].types.includes(sensor.type)) {
+                        availableSlots[i] = null;
+                        placed = true;
+                        break;
+                    }
+                }
+                if (!placed) return false;
+            }
+            return true;
+        }
+
+        function showPortableResult() {
+            configurationSourceScreen = 'screen-portable';
+            const resultsContainer = document.getElementById('results-container');
+            
+            const selectedGasConfigs = choicesInstances.portable.map(instance => {
+                const gasName = instance.getValue(true);
+                if (!gasName) return null;
+                const gasData = portableGases[gasName];
+                let selectedSensor = gasData.sensors[0];
+                if (gasData.sensors.length > 1 && instance.rangeInstance) {
+                    const rangeIndex = instance.rangeInstance.getValue(true);
+                    selectedSensor = gasData.sensors[rangeIndex] || gasData.sensors[0];
+                }
+                return { ...selectedSensor, type: gasData.type, originalName: gasName };
+            }).filter(Boolean);
+
+            if (selectedGasConfigs.length === 0) {
+                resultsContainer.innerHTML = '<div class="result-card"><p class="text-red-600">Please select at least one gas to detect.</p></div>';
+                showScreen('screen-results');
+                return;
+            }
+
+            const wantsInbuiltPump = document.getElementById('portable-pump-inbuilt').checked;
+            const wantsExternalPump = document.getElementById('portable-pump-external').checked;
+            
+            let possibleOptions = [];
+
+            for (const [deviceName, device] of Object.entries(portableProducts)) {
+                if (device.isPac) {
+                    if (selectedGasConfigs.length === 1 && device.configs[selectedGasConfigs[0].originalName]) {
+                        possibleOptions.push({ name: deviceName, device, sensors: selectedGasConfigs, requiredSlots: 1 });
+                    }
+                    continue;
+                }
+                
+                if (device.slots.length < selectedGasConfigs.length || device.slots.length - selectedGasConfigs.length > 2) continue;
+
+                if (canSensorsFit(selectedGasConfigs, device.slots)) {
+                    possibleOptions.push({ name: deviceName, device, sensors: selectedGasConfigs, isDual: false, requiredSlots: selectedGasConfigs.length });
+                }
+
+                if (device.dualSensorSupport && selectedGasConfigs.length > 1) {
+                    for (const combo of Object.values(dualSensorMap)) {
+                        const hasGas1 = selectedGasConfigs.some(s => s.originalName.startsWith(combo.replaces[0]));
+                        const hasGas2 = selectedGasConfigs.some(s => s.originalName.startsWith(combo.replaces[1]));
+                        if (hasGas1 && hasGas2) {
+                            const otherSensors = selectedGasConfigs.filter(s => !s.originalName.startsWith(combo.replaces[0]) && !s.originalName.startsWith(combo.replaces[1]));
+                            const optimizedSensors = [...otherSensors, combo];
+                            if (canSensorsFit(optimizedSensors, device.slots)) {
+                                possibleOptions.push({ name: deviceName, device, sensors: optimizedSensors, isDual: true, comboName: combo.name, requiredSlots: optimizedSensors.length });
+                            }
+                        }
+                    }
+                }
+            }
+            
+            possibleOptions.forEach(option => {
+                let score = 100;
+                if (option.isDual) score += 50;
+                if (wantsInbuiltPump && option.device.pump === 'inbuilt') score += 20;
+                if (wantsExternalPump && option.device.pump === 'external') score += 20;
+                if ((wantsInbuiltPump && option.device.pump === 'external') || (wantsExternalPump && option.device.pump === 'inbuilt')) score -= 10;
+                if(!option.device.isPac) score -= (option.device.slots.length - option.requiredSlots) * 5;
+                option.score = score;
+            });
+            
+            let finalOptions = [...new Map(possibleOptions.map(o => [JSON.stringify({name: o.name, sensors: o.sensors.map(s=>s.name)}), o])).values()];
+            if (wantsInbuiltPump && !wantsExternalPump) finalOptions = finalOptions.filter(opt => opt.device.pump === 'inbuilt');
+            if (wantsExternalPump && !wantsInbuiltPump) finalOptions = finalOptions.filter(opt => opt.device.pump !== 'inbuilt');
+            if(finalOptions.length === 0 && possibleOptions.length > 0) finalOptions = possibleOptions;
+            finalOptions.sort((a, b) => b.score - a.score);
+
+            let resultsHtml = '';
+            if(finalOptions.length > 0) {
+                 finalOptions.forEach((opt, index) => {
+                    const badge = index === 0 ? '<span class="inline-flex items-center rounded-full bg-green-200 px-3 py-1 text-xs font-medium text-green-800 mb-2">Recommended Solution</span>' : `<span class="inline-flex items-center rounded-full bg-blue-200 px-3 py-1 text-xs font-medium text-blue-800 mb-2">Alternative Option</span>`;
+                    let subtext = opt.device.description;
+                    if(opt.isDual) subtext += ` Uses a <strong>${opt.comboName}</strong> to reduce required slots.`;
+                    
+                    let tableHtml;
+                    if(opt.device.isPac) {
+                        const gasName = opt.sensors[0].originalName;
+                        const comboName = Object.keys(opt.device.configs).find(key => key.includes(gasName));
+                        tableHtml = `<tr><td>Dräger ${opt.name} for ${comboName || gasName}</td><td>${opt.device.configs[comboName || gasName]}</td></tr>`;
+                    } else {
+                        tableHtml = `<tr><td>Device: ${opt.name}</td><td>${opt.device.partNumber}</td></tr>
+                                    ${opt.sensors.map(g => `<tr><td>${g.name} Sensor (${g.range})</td><td>${g.partNumber}</td></tr>`).join('')}`;
+                    }
+
+                    resultsHtml += `
+                        <div class="result-card ${index === 0 ? 'recommended' : ''}">
+                            ${badge}
+                            <h3 class="text-xl font-bold">Dräger ${opt.name}</h3>
+                            <p class="text-gray-600">${subtext}</p>
+                            <table class="part-number-table">${tableHtml}</table>
+                        </div>`;
+                });
+            } else {
+                 resultsHtml = `<div class="result-card"><h3 class="text-xl font-bold">No Suitable Single Device Found</h3><p class="text-gray-600">No single Dräger device could be configured with the specified combination of sensors due to hardware or efficiency constraints. Please revise your selection or consider a multi-device solution.</p></div>`;
+            }
+
+            resultsContainer.innerHTML = resultsHtml;
+            showScreen('screen-results');
+        }
+
+        // --- INITIALIZATION ---
+        document.addEventListener('DOMContentLoaded', () => {
+            initFixedChoices();
+            generateGasSelectors();
+        });
+    </script>
+</body>
+</html>
